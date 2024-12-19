@@ -1,6 +1,5 @@
 use anyhow::Error;
-use nix::mqueue::mq_attr_member_t;
-use nix::mqueue::{mq_close, mq_open, mq_receive, mq_send, MQ_OFlag, MqAttr, MqdT};
+use nix::mqueue::{mq_open, mq_receive, MQ_OFlag, MqAttr, MqdT};
 use nix::sys::stat::Mode;
 use serde::Deserialize;
 
@@ -35,8 +34,7 @@ impl<const MESSAGE_SIZE: usize> IpcReceiver<MESSAGE_SIZE> {
 #[cfg(test)]
 mod tests {
     use crate::receiver::IpcReceiver;
-    use nix::mqueue::mq_attr_member_t;
-    use nix::mqueue::{mq_close, mq_open, mq_receive, mq_send, MQ_OFlag, MqAttr, MqdT};
+    use nix::mqueue::{mq_close, mq_open, mq_send, MQ_OFlag, MqAttr, MqdT};
     use nix::sys::stat::Mode;
     use serde::{Deserialize, Serialize};
 
@@ -72,8 +70,8 @@ mod tests {
             data: message_string
         };
         let mq = create_queue();
-        send_message(&mq,bincode::serialize(&message).unwrap().as_ref());
-        mq_close(mq);
+        send_message(&mq, bincode::serialize(&message).unwrap().as_ref());
+        let _ =mq_close(mq);
         let mut receiver = IpcReceiver::<MESSAGE_SIZE>::init(QUEUE_NAME, 10).unwrap();
         let data = receiver.receive::<Message>().unwrap();
         assert_eq!(data, message);

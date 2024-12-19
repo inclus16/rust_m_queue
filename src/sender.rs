@@ -1,6 +1,5 @@
 use anyhow::Error;
-use nix::mqueue::mq_attr_member_t;
-use nix::mqueue::{mq_close, mq_open, mq_receive, mq_send, MQ_OFlag, MqAttr, MqdT};
+use nix::mqueue::{mq_open, mq_send, MQ_OFlag, MqdT};
 use nix::sys::stat::Mode;
 use serde::Serialize;
 
@@ -27,8 +26,7 @@ impl<const MESSAGE_SIZE: usize> IpcSender<MESSAGE_SIZE> {
 #[cfg(test)]
 mod tests {
     use crate::sender::IpcSender;
-    use nix::mqueue::mq_attr_member_t;
-    use nix::mqueue::{mq_close, mq_open, mq_receive, mq_send, MQ_OFlag, MqAttr, MqdT};
+    use nix::mqueue::{mq_close, mq_open, mq_receive, MQ_OFlag, MqAttr, MqdT};
     use nix::sys::stat::Mode;
     use serde::{Deserialize, Serialize};
 
@@ -50,14 +48,14 @@ mod tests {
 
     fn receive_message(descriptor: &MqdT, buffer: &mut [u8; MESSAGE_SIZE], prior: &mut u32)
     {
-        let len = mq_receive(descriptor, buffer, prior).unwrap();
+        let _len = mq_receive(descriptor, buffer, prior).unwrap();
     }
     #[test]
     fn test_success_connect() {
         let mq = create_queue();
         let sender = IpcSender::<MESSAGE_SIZE>::connect_to_queue(QUEUE_NAME);
         assert_eq!(sender.is_ok(), true);
-        mq_close(mq);
+        let _ = mq_close(mq);
     }
 
     #[test]
@@ -65,10 +63,8 @@ mod tests {
     {
         let mq = create_queue();
         let sender = IpcSender::<MESSAGE_SIZE>::connect_to_queue(QUEUE_NAME).unwrap();
-        let request_msg = [28_u8; MESSAGE_SIZE];
-        let message_string = String::from("test");
         let message = Message {
-            data: message_string
+            data: String::from("test")
         };
         sender.send(message.clone(), 3).unwrap();
         let mut buffer = [0; MESSAGE_SIZE];
@@ -76,6 +72,6 @@ mod tests {
         receive_message(&mq, &mut buffer, &mut priority);
         assert_eq!(priority, 3);
         assert_eq!(bincode::deserialize::<Message>(buffer.as_ref()).unwrap(), message);
-        mq_close(mq);
+        let _ = mq_close(mq);
     }
 }
