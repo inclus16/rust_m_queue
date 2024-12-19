@@ -4,18 +4,17 @@ use nix::mqueue::mq_attr_member_t;
 use nix::mqueue::{mq_close, mq_open, mq_receive, mq_send, MQ_OFlag, MqAttr, MqdT};
 use nix::sys::stat::Mode;
 
-const MESSAGE_SIZE: i64 = 1024;
-pub struct IpcReceiver {
+pub struct IpcReceiver<const MESSAGE_SIZE: i64> {
     descriptor: MqdT,
     buffer: [u8; MESSAGE_SIZE as usize],
 }
 
-impl IpcReceiver {
-    pub fn init(name: &str) -> Result<Self, Error>
+impl<const MESSAGE_SIZE: i64> IpcReceiver<MESSAGE_SIZE> {
+    pub fn init(name: &str, capacity: u8) -> Result<Self, Error>
     {
         let flags = MQ_OFlag::O_CREAT | MQ_OFlag::O_RDONLY;
         let mode = Mode::S_IWUSR | Mode::S_IRUSR | Mode::S_IRGRP | Mode::S_IROTH;
-        let attributes = MqAttr::new(0, 10, MESSAGE_SIZE, 0);
+        let attributes = MqAttr::new(0, capacity, MESSAGE_SIZE, 0);
         let mqd0 = mq_open(name, flags, mode, Some(&attributes))?;
         Ok(Self {
             descriptor: mqd0,
