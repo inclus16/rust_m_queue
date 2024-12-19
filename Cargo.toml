@@ -4,10 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = ""
 license = "MIT"
-homepage = ""
 repository = "https://github.com/inclus16/rust_m_queue"
-documentation = ""
-readme = ""
 categories = ["os::unix-apis"]
 keywords = ["ips", "m_queue"]
 
