@@ -1,0 +1,18 @@
+[package]
+name = "rust_m_queue"
+version = "0.1.0"
+edition = "2021"
+description = ""
+license = "MIT"
+homepage = ""
+repository = ""
+documentation = ""
+readme = ""
+categories = ["os::unix-apis"]
+keywords = ["ips", "m_queue"]
+
+[dependencies]
+bincode = { version = "1.3.3" }
+serde = { version = "1.0.216", features = ["derive"] }
+nix = { version = "0.29.0", features = ["mqueue"] }
+anyhow = "1.0.94"
