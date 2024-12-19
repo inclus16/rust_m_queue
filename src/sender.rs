@@ -10,7 +10,7 @@ pub struct IpcSender<const MESSAGE_SIZE: i64> {
 }
 
 impl<const MESSAGE_SIZE: i64> IpcSender<MESSAGE_SIZE> {
-    pub fn init(name: &str, sender_id: u8,capacity:u8) -> Result<Self, Error> {
+    pub fn init(name: &str, sender_id: u8, capacity: i64) -> Result<Self, Error> {
         let flags = MQ_OFlag::O_WRONLY;
         let mode = Mode::S_IWUSR | Mode::S_IRUSR | Mode::S_IRGRP | Mode::S_IROTH;
         let attributes = MqAttr::new(0, capacity, MESSAGE_SIZE, 0);
