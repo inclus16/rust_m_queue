@@ -1,7 +1,7 @@
 This library is a simple OOP-like wrapper around nix posix m_queue to communicate between processes through queue in
 unix environment.
 
-It contains two classes: Receiver and Subscriber.
+It contains two structs: IpcReceiver and IpcSender.
 
 Basic usage of sender:
 
