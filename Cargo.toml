@@ -1,13 +1,10 @@
 [package]
 name = "rust_m_queue"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
-description = ""
+description = "OOP-like wrapper around nix's posix m_queue"
 license = "MIT"
-homepage = ""
 repository = "https://github.com/inclus16/rust_m_queue"
-documentation = ""
-readme = ""
 categories = ["os::unix-apis"]
 keywords = ["ips", "m_queue"]
 
