@@ -1,12 +1,15 @@
 use anyhow::Error;
-use nix::mqueue::{mq_open, mq_receive, MQ_OFlag, MqAttr, MqdT};
+use nix::mqueue::{mq_open, mq_receive,mq_close, mq_unlink, MQ_OFlag, MqAttr, MqdT};
 use nix::sys::stat::Mode;
+use std::os::fd::AsRawFd;
+use std::os::fd::FromRawFd;
 use serde::Deserialize;
 
 /// Receiver.
 /// Creates queue and listen for incoming messages.
 pub struct IpcReceiver<const MESSAGE_SIZE: usize> {
     descriptor: MqdT,
+    name: &'static str,
     buffer: [u8; MESSAGE_SIZE],
 }
 
@@ -20,14 +23,15 @@ impl<const MESSAGE_SIZE: usize> IpcReceiver<MESSAGE_SIZE> {
     ///const QUEUE_NAME: &str = "/test_queue";
     ///let mut receiver = IpcReceiver::<MESSAGE_SIZE>::init(QUEUE_NAME, 10)?;
     /// ```
-    pub fn init(name: &str, capacity: i64) -> Result<Self, Error>
+    pub fn init(name: &'static str, capacity: i64) -> Result<Self, Error>
     {
         let flags = MQ_OFlag::O_CREAT | MQ_OFlag::O_RDONLY;
-        let mode = Mode::S_IRUSR;
+        let mode = Mode::S_IWUSR | Mode::S_IRUSR;
         let attributes = MqAttr::new(0, capacity, MESSAGE_SIZE as i64, 0);
         let mqd0 = mq_open(name, flags, mode, Some(&attributes))?;
         Ok(Self {
             descriptor: mqd0,
+            name,
             buffer: [0; MESSAGE_SIZE],
         })
     }
@@ -59,6 +63,18 @@ impl<const MESSAGE_SIZE: usize> IpcReceiver<MESSAGE_SIZE> {
     }
 }
 
+impl<const MESSAGE_SIZE: usize> Drop for IpcReceiver<MESSAGE_SIZE>
+{
+    fn drop(&mut self) {
+        let descriptor: MqdT;
+        unsafe {
+            descriptor = MqdT::from_raw_fd(self.descriptor.as_raw_fd());
+        }
+        mq_close(descriptor);
+        mq_unlink(self.name);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::receiver::IpcReceiver;
@@ -72,11 +88,11 @@ mod tests {
     }
     const MESSAGE_SIZE: usize = 1024;
 
-    const QUEUE_NAME: &str = "/test_queue";
+    const QUEUE_NAME: &str = "/test_queue_rec";
 
     fn create_queue() -> MqdT
     {
-        let flags = MQ_OFlag::O_CREAT | MQ_OFlag::O_WRONLY;
+        let flags = MQ_OFlag::O_CREAT | MQ_OFlag::O_RDWR;
         let mode = Mode::S_IWUSR | Mode::S_IRUSR;
         let attributes = MqAttr::new(0, 10, MESSAGE_SIZE as i64, 0);
         mq_open(QUEUE_NAME, flags, mode, Some(&attributes)).unwrap()

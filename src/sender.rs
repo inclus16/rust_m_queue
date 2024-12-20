@@ -1,13 +1,18 @@
+use std::sync::mpsc::Sender;
 use anyhow::Error;
 use nix::mqueue::{mq_open, mq_send, MQ_OFlag, MqdT};
 use nix::sys::stat::Mode;
 use serde::Serialize;
+use nix::mqueue::MqAttr;
+use nix::mqueue::mq_close;
+use std::os::fd::FromRawFd;
+use std::os::fd::AsRawFd;
 
 
 /// Sender.
 /// Connects to previously created queue (via Receiver) and send messages to it.
 pub struct IpcSender<const MESSAGE_SIZE: usize> {
-    descriptor: MqdT,
+    descriptor:  MqdT,
 }
 
 impl<const MESSAGE_SIZE: usize> IpcSender<MESSAGE_SIZE> {
@@ -22,7 +27,7 @@ impl<const MESSAGE_SIZE: usize> IpcSender<MESSAGE_SIZE> {
     ///
     /// ```
     pub fn connect_to_queue(name: &str) -> Result<Self, Error> {
-        let flags = MQ_OFlag::O_WRONLY;
+        let flags =  MQ_OFlag::O_RDWR;
         let mode = Mode::S_IWUSR;
         let mqd0 = mq_open(name, flags, mode, None)?;
         Ok(Self { descriptor: mqd0 })
@@ -55,10 +60,21 @@ impl<const MESSAGE_SIZE: usize> IpcSender<MESSAGE_SIZE> {
     }
 }
 
+
+impl<const MESSAGE_SIZE: usize> Drop for IpcSender<MESSAGE_SIZE> {
+    fn drop(&mut self) {
+        let descriptor:MqdT;
+        unsafe {
+            descriptor = MqdT::from_raw_fd(self.descriptor.as_raw_fd());
+        }
+        mq_close(descriptor);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::sender::IpcSender;
-    use nix::mqueue::{mq_close, mq_open, mq_receive, MQ_OFlag, MqAttr, MqdT};
+    use nix::mqueue::{mq_close, mq_open, mq_receive, MQ_OFlag, MqAttr, MqdT,mq_unlink};
     use nix::sys::stat::Mode;
     use serde::{Deserialize, Serialize};
 
@@ -68,7 +84,7 @@ mod tests {
     }
     const MESSAGE_SIZE: usize = 1024;
 
-    const QUEUE_NAME: &str = "/test_queue";
+    const QUEUE_NAME: &str = "/test_queue_sen";
 
     fn create_queue() -> MqdT
     {
@@ -88,6 +104,7 @@ mod tests {
         let sender = IpcSender::<MESSAGE_SIZE>::connect_to_queue(QUEUE_NAME);
         assert_eq!(sender.is_ok(), true);
         let _ = mq_close(mq);
+        mq_unlink(QUEUE_NAME);
     }
 
     #[test]
@@ -102,8 +119,9 @@ mod tests {
         let mut buffer = [0; MESSAGE_SIZE];
         let mut priority = 0u32;
         receive_message(&mq, &mut buffer, &mut priority);
+        let _ = mq_close(mq);
+        mq_unlink(QUEUE_NAME);
         assert_eq!(priority, 3);
         assert_eq!(bincode::deserialize::<Message>(buffer.as_ref()).unwrap(), message);
-        let _ = mq_close(mq);
     }
 }
