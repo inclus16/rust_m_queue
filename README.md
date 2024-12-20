@@ -1,12 +1,12 @@
 This library is a simple OOP-like wrapper around nix posix m_queue to communicate between processes through queue in
 unix environment.
 
-It contains two structs: IpcReceiver and IpcSender.
+It contains two classes: IpcReceiver and IpcSender.
 
-Basic usage of sender:
+Basic usage of IpcSender:
 
 ```rust    
-    #[derive(Serialize)]
+#[derive(Serialize)]
 struct Message {
     pub data: String,
 }
@@ -17,13 +17,15 @@ let message = Message {
 data: String::from("test")
 };
 let priority = 3;
-sender.send(message.clone(), priority).unwrap();
+sender.send(message, priority).unwrap();
 ```
 
-And receiver:
+And IpcReceiver:
 
-```rust    
-    #[derive(Serialize)]
+```rust       
+use serde::{Deserialize};
+use rust_m_queue::receiver::IpcReceiver;
+#[derive(Deserialise)]
 struct Message {
     pub data: String,
 }
@@ -31,7 +33,6 @@ const MESSAGE_SIZE: usize = 1024;
 const QUEUE_NAME: &str = "/test_queue";
 let mut receiver = IpcReceiver::<MESSAGE_SIZE>::init(QUEUE_NAME, 10).unwrap();
 loop{
-let data = receiver.receive::< Message >().unwrap(); //thread blocking
+let data = receiver.receive::<Message>().unwrap(); //thread blocking
 }
 ```
-    
