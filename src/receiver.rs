@@ -1,9 +1,9 @@
 use anyhow::Error;
-use nix::mqueue::{mq_open, mq_receive,mq_close, mq_unlink, MQ_OFlag, MqAttr, MqdT};
+use nix::mqueue::{mq_close, mq_open, mq_receive, mq_unlink, MQ_OFlag, MqAttr, MqdT};
 use nix::sys::stat::Mode;
+use serde::Deserialize;
 use std::os::fd::AsRawFd;
 use std::os::fd::FromRawFd;
-use serde::Deserialize;
 
 /// Receiver.
 /// Creates queue and listen for incoming messages.

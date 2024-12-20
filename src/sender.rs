@@ -1,18 +1,17 @@
-use std::sync::mpsc::Sender;
-use anyhow::Error;
+use anyhow::{anyhow, Error};
+use nix::mqueue::mq_close;
+use nix::mqueue::MqAttr;
 use nix::mqueue::{mq_open, mq_send, MQ_OFlag, MqdT};
 use nix::sys::stat::Mode;
 use serde::Serialize;
-use nix::mqueue::MqAttr;
-use nix::mqueue::mq_close;
-use std::os::fd::FromRawFd;
 use std::os::fd::AsRawFd;
+use std::os::fd::FromRawFd;
 
 
 /// Sender.
 /// Connects to previously created queue (via Receiver) and send messages to it.
 pub struct IpcSender<const MESSAGE_SIZE: usize> {
-    descriptor:  MqdT,
+    descriptor: MqdT,
 }
 
 impl<const MESSAGE_SIZE: usize> IpcSender<MESSAGE_SIZE> {
@@ -27,7 +26,7 @@ impl<const MESSAGE_SIZE: usize> IpcSender<MESSAGE_SIZE> {
     ///
     /// ```
     pub fn connect_to_queue(name: &str) -> Result<Self, Error> {
-        let flags =  MQ_OFlag::O_RDWR;
+        let flags = MQ_OFlag::O_RDWR;
         let mode = Mode::S_IWUSR;
         let mqd0 = mq_open(name, flags, mode, None)?;
         Ok(Self { descriptor: mqd0 })
@@ -54,7 +53,13 @@ impl<const MESSAGE_SIZE: usize> IpcSender<MESSAGE_SIZE> {
     /// sender.send(message, priority)?;
     /// ```
     pub fn send(&self, command: impl Serialize, priority: u32) -> Result<(), Error> {
-        let msg = bincode::serialize(&command)?;
+        let mut msg = bincode::serialize(&command)?;
+        let length = msg.len();
+        if length > MESSAGE_SIZE {
+            return Err(anyhow!("Length exceeds buffer limit"));
+        } else if length < MESSAGE_SIZE {
+            msg.append(&mut vec![0_u8; MESSAGE_SIZE - length]);
+        }
         mq_send(&self.descriptor, &msg, priority)?;
         Ok(())
     }
@@ -63,7 +68,7 @@ impl<const MESSAGE_SIZE: usize> IpcSender<MESSAGE_SIZE> {
 
 impl<const MESSAGE_SIZE: usize> Drop for IpcSender<MESSAGE_SIZE> {
     fn drop(&mut self) {
-        let descriptor:MqdT;
+        let descriptor: MqdT;
         unsafe {
             descriptor = MqdT::from_raw_fd(self.descriptor.as_raw_fd());
         }
@@ -74,7 +79,7 @@ impl<const MESSAGE_SIZE: usize> Drop for IpcSender<MESSAGE_SIZE> {
 #[cfg(test)]
 mod tests {
     use crate::sender::IpcSender;
-    use nix::mqueue::{mq_close, mq_open, mq_receive, MQ_OFlag, MqAttr, MqdT,mq_unlink};
+    use nix::mqueue::{mq_close, mq_open, mq_receive, mq_unlink, MQ_OFlag, MqAttr, MqdT};
     use nix::sys::stat::Mode;
     use serde::{Deserialize, Serialize};
 
