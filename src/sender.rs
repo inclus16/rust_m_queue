@@ -4,11 +4,23 @@ use nix::sys::stat::Mode;
 use serde::Serialize;
 
 
+/// Sender.
+/// Connects to previously created queue (via Receiver) and send messages to it.
 pub struct IpcSender<const MESSAGE_SIZE: usize> {
     descriptor: MqdT,
 }
 
 impl<const MESSAGE_SIZE: usize> IpcSender<MESSAGE_SIZE> {
+    /// Connects to previously created queue.
+    /// # Example
+    /// ```
+    ///use rust_m_queue::sender::IpcSender;
+    ///
+    ///const MESSAGE_SIZE: usize = 1024;
+    ///const QUEUE_NAME: &str = "/test_queue";
+    ///let sender = IpcSender::<MESSAGE_SIZE>::connect_to_queue(QUEUE_NAME)?;
+    ///
+    /// ```
     pub fn connect_to_queue(name: &str) -> Result<Self, Error> {
         let flags = MQ_OFlag::O_WRONLY;
         let mode = Mode::S_IWUSR;
@@ -16,6 +28,26 @@ impl<const MESSAGE_SIZE: usize> IpcSender<MESSAGE_SIZE> {
         Ok(Self { descriptor: mqd0 })
     }
 
+    /// Sends message to queue with priority.
+    /// Command must implement Serialize to automatically serialize via bincode.
+    /// # Example
+    /// ```
+    /// use serde::Serialize;
+    /// use rust_m_queue::sender::IpcSender;
+    ///
+    /// #[derive(Serialize)]
+    /// struct Message {
+    ///     pub data: String,
+    /// }
+    /// const MESSAGE_SIZE: usize = 1024;
+    /// const QUEUE_NAME: &str = "/test_queue";
+    /// let sender = IpcSender::<MESSAGE_SIZE>::connect_to_queue(QUEUE_NAME)?;
+    /// let message = Message {
+    ///     data: String::from("test")
+    /// };
+    /// let priority = 3;
+    /// sender.send(message, priority)?;
+    /// ```
     pub fn send(&self, command: impl Serialize, priority: u32) -> Result<(), Error> {
         let msg = bincode::serialize(&command)?;
         mq_send(&self.descriptor, &msg, priority)?;

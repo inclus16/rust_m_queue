@@ -3,12 +3,23 @@ use nix::mqueue::{mq_open, mq_receive, MQ_OFlag, MqAttr, MqdT};
 use nix::sys::stat::Mode;
 use serde::Deserialize;
 
+/// Receiver.
+/// Creates queue and listen for incoming messages.
 pub struct IpcReceiver<const MESSAGE_SIZE: usize> {
     descriptor: MqdT,
     buffer: [u8; MESSAGE_SIZE],
 }
 
 impl<const MESSAGE_SIZE: usize> IpcReceiver<MESSAGE_SIZE> {
+    /// Creates new queue with provided name and capacity.
+    /// # Example
+    /// ```
+    ///use rust_m_queue::receiver::IpcReceiver;
+    ///
+    ///const MESSAGE_SIZE: usize = 1024;
+    ///const QUEUE_NAME: &str = "/test_queue";
+    ///let mut receiver = IpcReceiver::<MESSAGE_SIZE>::init(QUEUE_NAME, 10)?;
+    /// ```
     pub fn init(name: &str, capacity: i64) -> Result<Self, Error>
     {
         let flags = MQ_OFlag::O_CREAT | MQ_OFlag::O_RDONLY;
@@ -21,6 +32,23 @@ impl<const MESSAGE_SIZE: usize> IpcReceiver<MESSAGE_SIZE> {
         })
     }
 
+    /// Thread blocking receive first message from queue.
+    /// It will deserialize via bincode automatically data into provided generic type.
+    /// # Example
+    /// ```
+    /// use serde::{Deserialize};
+    /// use rust_m_queue::receiver::IpcReceiver;
+    ///
+    /// #[derive(Deserialize)]
+    /// struct Message {
+    ///    pub data: String,
+    /// }
+    /// const MESSAGE_SIZE: usize = 1024;
+    ///const QUEUE_NAME: &str = "/test_queue";
+    ///let mut receiver = IpcReceiver::<MESSAGE_SIZE>::init(QUEUE_NAME, 10)?;
+    ///loop{
+    ///    let data = receiver.receive::<Message>()?; //thread blocking
+    /// }
     pub fn receive<'a, T>(&'a mut self) -> Result<T, Error>
     where
         T: Deserialize<'a>,
@@ -71,7 +99,7 @@ mod tests {
         };
         let mq = create_queue();
         send_message(&mq, bincode::serialize(&message).unwrap().as_ref());
-        let _ =mq_close(mq);
+        let _ = mq_close(mq);
         let mut receiver = IpcReceiver::<MESSAGE_SIZE>::init(QUEUE_NAME, 10).unwrap();
         let data = receiver.receive::<Message>().unwrap();
         assert_eq!(data, message);
