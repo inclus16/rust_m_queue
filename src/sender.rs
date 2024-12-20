@@ -23,7 +23,7 @@ impl<const MESSAGE_SIZE: usize> IpcSender<MESSAGE_SIZE> {
     ///
     ///const MESSAGE_SIZE: usize = 1024;
     ///const QUEUE_NAME: &str = "/test_queue";
-    ///let sender = IpcSender::<MESSAGE_SIZE>::connect_to_queue(QUEUE_NAME)?;
+    ///let sender = IpcSender::<MESSAGE_SIZE>::connect_to_queue(QUEUE_NAME).unwrap();
     ///
     /// ```
     pub fn connect_to_queue(name: &str) -> Result<Self, Error> {
@@ -46,12 +46,12 @@ impl<const MESSAGE_SIZE: usize> IpcSender<MESSAGE_SIZE> {
     /// }
     /// const MESSAGE_SIZE: usize = 1024;
     /// const QUEUE_NAME: &str = "/test_queue";
-    /// let sender = IpcSender::<MESSAGE_SIZE>::connect_to_queue(QUEUE_NAME)?;
+    /// let sender = IpcSender::<MESSAGE_SIZE>::connect_to_queue(QUEUE_NAME).unwrap();
     /// let message = Message {
     ///     data: String::from("test")
     /// };
     /// let priority = 3;
-    /// sender.send(message, priority)?;
+    /// sender.send(message, priority).unwrap();
     /// ```
     pub fn send(&self, command: impl Serialize, priority: u32) -> Result<(), Error> {
         let msg = bincode::serialize(&command)?;

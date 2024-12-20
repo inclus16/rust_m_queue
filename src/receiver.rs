@@ -21,7 +21,7 @@ impl<const MESSAGE_SIZE: usize> IpcReceiver<MESSAGE_SIZE> {
     ///
     ///const MESSAGE_SIZE: usize = 1024;
     ///const QUEUE_NAME: &str = "/test_queue";
-    ///let mut receiver = IpcReceiver::<MESSAGE_SIZE>::init(QUEUE_NAME, 10)?;
+    ///let mut receiver = IpcReceiver::<MESSAGE_SIZE>::init(QUEUE_NAME, 10).unwrap();
     /// ```
     pub fn init(name: &'static str, capacity: i64) -> Result<Self, Error>
     {
@@ -49,9 +49,9 @@ impl<const MESSAGE_SIZE: usize> IpcReceiver<MESSAGE_SIZE> {
     /// }
     /// const MESSAGE_SIZE: usize = 1024;
     ///const QUEUE_NAME: &str = "/test_queue";
-    ///let mut receiver = IpcReceiver::<MESSAGE_SIZE>::init(QUEUE_NAME, 10)?;
+    ///let mut receiver = IpcReceiver::<MESSAGE_SIZE>::init(QUEUE_NAME, 10).unwrap();
     ///loop{
-    ///    let data = receiver.receive::<Message>()?; //thread blocking
+    ///    let data = receiver.receive::<Message>().unwrap(); //thread blocking
     /// }
     pub fn receive<'a, T>(&'a mut self) -> Result<T, Error>
     where
