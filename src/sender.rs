@@ -23,7 +23,7 @@ impl<const MESSAGE_SIZE: usize> IpcSender<MESSAGE_SIZE> {
     /// ```
     pub fn connect_to_queue(name: &str) -> Result<Self, Error> {
         let flags = MQ_OFlag::O_WRONLY;
-        let mode = Mode::S_IWUSR;
+        let mode = Mode::S_IWUSR | Mode::S_IRUSR;
         let mqd0 = mq_open(name, flags, mode, None)?;
         Ok(Self { descriptor: mqd0 })
     }

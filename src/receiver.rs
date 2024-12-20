@@ -23,7 +23,7 @@ impl<const MESSAGE_SIZE: usize> IpcReceiver<MESSAGE_SIZE> {
     pub fn init(name: &str, capacity: i64) -> Result<Self, Error>
     {
         let flags = MQ_OFlag::O_CREAT | MQ_OFlag::O_RDONLY;
-        let mode = Mode::S_IRUSR | Mode::S_IWUSR;
+        let mode = Mode::S_IWUSR | Mode::S_IRUSR;
         let attributes = MqAttr::new(0, capacity, MESSAGE_SIZE as i64, 0);
         let mqd0 = mq_open(name, flags, mode, Some(&attributes))?;
         Ok(Self {
