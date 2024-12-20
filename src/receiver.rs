@@ -76,7 +76,7 @@ mod tests {
 
     fn create_queue() -> MqdT
     {
-        let flags = MQ_OFlag::O_CREAT | MQ_OFlag::O_RDONLY |  MQ_OFlag::O_WRONLY;
+        let flags = MQ_OFlag::O_CREAT | MQ_OFlag::O_RDWR;
         let mode = Mode::S_IWUSR | Mode::S_IRUSR;
         let attributes = MqAttr::new(0, 10, MESSAGE_SIZE as i64, 0);
         mq_open(QUEUE_NAME, flags, mode, Some(&attributes)).unwrap()

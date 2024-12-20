@@ -2,6 +2,7 @@ use anyhow::Error;
 use nix::mqueue::{mq_open, mq_send, MQ_OFlag, MqdT};
 use nix::sys::stat::Mode;
 use serde::Serialize;
+use nix::mqueue::MqAttr;
 
 
 /// Sender.
@@ -22,9 +23,10 @@ impl<const MESSAGE_SIZE: usize> IpcSender<MESSAGE_SIZE> {
     ///
     /// ```
     pub fn connect_to_queue(name: &str) -> Result<Self, Error> {
-        let flags = MQ_OFlag::O_WRONLY;
+        let flags =  MQ_OFlag::O_RDWR;
         let mode = Mode::S_IWUSR | Mode::S_IRUSR;
-        let mqd0 = mq_open(name, flags, mode, None)?;
+        let attributes = MqAttr::new(0, 10, MESSAGE_SIZE as i64, 0);
+        let mqd0 = mq_open(name, flags, mode, Some(&attributes))?;
         Ok(Self { descriptor: mqd0 })
     }
 
