@@ -68,7 +68,7 @@ mod tests {
     }
     const MESSAGE_SIZE: usize = 1024;
 
-    const QUEUE_NAME: &str = "/test_queue";
+    const QUEUE_NAME: &str = "/test_queue_sen";
 
     fn create_queue() -> MqdT
     {
@@ -102,8 +102,8 @@ mod tests {
         let mut buffer = [0; MESSAGE_SIZE];
         let mut priority = 0u32;
         receive_message(&mq, &mut buffer, &mut priority);
+        let _ = mq_close(mq);
         assert_eq!(priority, 3);
         assert_eq!(bincode::deserialize::<Message>(buffer.as_ref()).unwrap(), message);
-        let _ = mq_close(mq);
     }
 }
