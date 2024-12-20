@@ -58,8 +58,8 @@ impl<const MESSAGE_SIZE: usize> IpcReceiver<MESSAGE_SIZE> {
         T: Deserialize<'a>,
     {
         let mut prio = 0u32;
-        let len = mq_receive(&self.descriptor, &mut self.buffer, &mut prio)?;
-        Ok(bincode::deserialize::<T>(&self.buffer[0..len])?)
+        let _len = mq_receive(&self.descriptor, &mut self.buffer, &mut prio)?;
+        Ok(bincode::deserialize::<T>(&self.buffer)?)
     }
 }
 
