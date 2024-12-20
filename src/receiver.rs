@@ -1,12 +1,15 @@
 use anyhow::Error;
-use nix::mqueue::{mq_open, mq_receive, MQ_OFlag, MqAttr, MqdT};
+use nix::mqueue::{mq_open, mq_receive,mq_close, mq_unlink, MQ_OFlag, MqAttr, MqdT};
 use nix::sys::stat::Mode;
+use std::os::fd::AsRawFd;
+use std::os::fd::FromRawFd;
 use serde::Deserialize;
 
 /// Receiver.
 /// Creates queue and listen for incoming messages.
 pub struct IpcReceiver<const MESSAGE_SIZE: usize> {
     descriptor: MqdT,
+    name: &'static str,
     buffer: [u8; MESSAGE_SIZE],
 }
 
@@ -20,7 +23,7 @@ impl<const MESSAGE_SIZE: usize> IpcReceiver<MESSAGE_SIZE> {
     ///const QUEUE_NAME: &str = "/test_queue";
     ///let mut receiver = IpcReceiver::<MESSAGE_SIZE>::init(QUEUE_NAME, 10)?;
     /// ```
-    pub fn init(name: &str, capacity: i64) -> Result<Self, Error>
+    pub fn init(name: &'static str, capacity: i64) -> Result<Self, Error>
     {
         let flags = MQ_OFlag::O_CREAT | MQ_OFlag::O_RDONLY;
         let mode = Mode::S_IWUSR | Mode::S_IRUSR;
@@ -28,6 +31,7 @@ impl<const MESSAGE_SIZE: usize> IpcReceiver<MESSAGE_SIZE> {
         let mqd0 = mq_open(name, flags, mode, Some(&attributes))?;
         Ok(Self {
             descriptor: mqd0,
+            name,
             buffer: [0; MESSAGE_SIZE],
         })
     }
@@ -56,6 +60,18 @@ impl<const MESSAGE_SIZE: usize> IpcReceiver<MESSAGE_SIZE> {
         let mut prio = 0u32;
         let len = mq_receive(&self.descriptor, &mut self.buffer, &mut prio)?;
         Ok(bincode::deserialize::<T>(&self.buffer[0..len])?)
+    }
+}
+
+impl<const MESSAGE_SIZE: usize> Drop for IpcReceiver<MESSAGE_SIZE>
+{
+    fn drop(&mut self) {
+        let descriptor: MqdT;
+        unsafe {
+            descriptor = MqdT::from_raw_fd(self.descriptor.as_raw_fd());
+        }
+        mq_close(descriptor);
+        mq_unlink(self.name);
     }
 }
 
